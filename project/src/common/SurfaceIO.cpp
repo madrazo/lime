@@ -409,7 +409,7 @@ static Surface *TryPNG(FILE *inFile,const uint8 *inData, int inDataLen)
       int num_palette;
       //printf("GRR ReadPNG:  PNG_COLOR_TYPE_PALETTE\n");
       if (!png_get_PLTE(png_ptr, info_ptr, &palette, &num_palette)) {
-         printf("ERROR_PLTE_CHUNK_NOT_FOUND_IN_PALETTE_IMAGE\n");
+         ELOG("ERROR_PLTE_CHUNK_NOT_FOUND_IN_PALETTE_IMAGE\n");
          png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
          return (0);
       }
@@ -419,12 +419,33 @@ static Surface *TryPNG(FILE *inFile,const uint8 *inData, int inDataLen)
 
       result = new SimpleSurface(width,height, bit_depth <= 4 ? pfIDX4 : pfIDX8 );
       result->IncRef();
-      for (short i = 0;  i < num_palette;  ++i){
-                           ipalette[i] = 
-                           (int)((0xFF << 24) | 
-                              ((palette[i].blue & 0xFF) << 16) | 
-                              ((palette[i].green & 0xFF) << 8) | 
-                              ((palette[i].red & 0xFF) ));                      
+
+      int num_trans = 0;
+      png_bytep trans = NULL;
+      if (!png_get_tRNS(png_ptr, info_ptr, &trans, &num_trans, NULL))
+      {
+         //ELOG("Warning, png_get_tRNS");
+      }
+
+      if((trans!=NULL) && (num_trans>0)){
+         for (short i = 0;  i < num_palette;  ++i){
+                              ipalette[i] = 
+                              (int)(  
+                                 (i<num_trans?(trans[i]<< 24):(0xFF << 24))|
+                                 ((palette[i].blue & 0xFF) << 16) | 
+                                 ((palette[i].green & 0xFF) << 8) | 
+                                 ((palette[i].red & 0xFF) ));                      
+         }
+      }else{
+         //no transparency
+         for (short i = 0;  i < num_palette;  ++i){
+                              ipalette[i] = 
+                              (int)(  
+                                 (0xFF << 24)|
+                                 ((palette[i].blue & 0xFF) << 16) | 
+                                 ((palette[i].green & 0xFF) << 8) | 
+                                 ((palette[i].red & 0xFF) ));                      
+         } 
       }
       result->setClut(num_palette, ipalette);
       target = result->BeginRender(Rect(width,height));

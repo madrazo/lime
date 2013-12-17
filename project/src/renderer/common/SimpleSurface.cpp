@@ -57,8 +57,10 @@ namespace lime {
 
 	void SimpleSurface::setClut(int inClutSize, int *inClutPtr){
 
+      		ELOG("Set clut %d",inClutSize);
+
    		if( !(mGPUPixelFormat == pfIDX4 || mGPUPixelFormat == pfIDX8) ){
-      		printf("Setting CLUT palette to non-index image\n");
+      		ELOG("Setting CLUT palette to non-index image");
       		return;
    		}
 
@@ -70,7 +72,13 @@ namespace lime {
 
    		mClutPtr = (int *)malloc(mClutSize * 4);
    		memcpy(mClutPtr, inClutPtr, inClutSize*4);
-  		mClutPtr[inClutSize-1] = 0x00000000;                   
+
+  		int i=0;
+  		for(i=0;i<mClutSize;i++)
+  		{
+  			ELOG("%d: %x", i, mClutPtr[i] );
+  		}
+  		//mClutPtr[inClutSize-1] = 0x00FFFFFF;                 
 	}
 	
 	SimpleSurface::~SimpleSurface () {

@@ -67,7 +67,8 @@ namespace lime {
 		
 	}
 	
-#if HX_WINDOWS
+//#if HX_WINDOWS
+#if 1
 	#define GL_PALETTE8_RGBA8_OES 0x1000
 	#define GL_PALETTE4_RGBA8_OES 0x1001
 	
@@ -406,7 +407,8 @@ namespace lime {
 			memcpy( a_data + a_palette_size, buffer, a_image_size );
 
 
-		#ifdef HX_WINDOWS
+		//#ifdef HX_WINDOWS
+		#if 1
 		
 /*		
 
@@ -436,14 +438,24 @@ namespace lime {
 		
 			glCompressedTexImage2D( GL_TEXTURE_2D,
 			                            0,
-			                            (fmt==pfIDX8 ? GL_PALETTE8_RGBA8_OES : GL_PALETTE4_RGBA8_OES),
+			                            //#if ANDROID
+			                            (fmt==pfIDX8 ? 0x00008b96 : GL_PALETTE4_RGBA8_OES),
+			                            //#else
+			                            //(fmt==pfIDX8 ? GL_PALETTE8_RGBA8_OES : GL_PALETTE4_RGBA8_OES),
+			                            //#endif
 			                            w,
 			                            h,
 			                            0,
 			                            a_size,
 			                            a_data
 			                            );
+
+			GLenum  err = glGetError();
+			__android_log_print(ANDROID_LOG_ERROR, "lime", "CreateTexture %d (%dx%d) err %d",
+			mTextureID, mPixelWidth, mPixelHeight,(int)err);
+
 		#endif
+
 			free(a_data);
 		}else{
 			glTexImage2D (GL_TEXTURE_2D, 0, store_format, w, h, 0, store_format, pixels, buffer);
