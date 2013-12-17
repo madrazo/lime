@@ -74,11 +74,10 @@ namespace lime {
    		memcpy(mClutPtr, inClutPtr, inClutSize*4);
 
   		int i=0;
-  		for(i=0;i<mClutSize;i++)
+  		/*for(i=0;i<mClutSize;i++)
   		{
   			ELOG("%d: %x", i, mClutPtr[i] );
-  		}
-  		//mClutPtr[inClutSize-1] = 0x00FFFFFF;                 
+  		}*/               
 	}
 	
 	SimpleSurface::~SimpleSurface () {

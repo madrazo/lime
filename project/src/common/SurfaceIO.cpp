@@ -403,7 +403,7 @@ static Surface *TryPNG(FILE *inFile,const uint8 *inData, int inDataLen)
        &interlace_type, NULL, NULL);
 
    
-   if( color_type == PNG_COLOR_TYPE_PALETTE){
+   if( color_type == PNG_COLOR_TYPE_PALETTE && bit_depth <= 8 ){
       //Open as palette
       png_colorp    palette;
       int num_palette;

@@ -87,9 +87,9 @@ namespace lime {
 
 		total = 0;
 		for (i = 0; i <= tl; i++)
-			{
-				total += (width >> i) * (height >> i);
-			}
+		{
+			total += (width >> i) * (height >> i);
+		}
 
 		skip = 0;
 		for (i = 0; i < l; i++)
@@ -200,10 +200,11 @@ namespace lime {
 			//case GL_PALETTE4_R5_G6_B5_OES:
 			//case GL_PALETTE4_RGBA4_OES:
 			//case GL_PALETTE4_RGB5_A1_OES:
-				if (i & 1)
+				if (i & 1){
 					index = imagedata[i / 2] & 15;
-				else
+				}else{
 					index = imagedata[i / 2] >> 4;
+				}
 				break;
 			//case GL_PALETTE8_RGB8_OES:
 			case GL_PALETTE8_RGBA8_OES:
@@ -402,9 +403,24 @@ namespace lime {
 			int a_size = a_palette_size+a_image_size;
 
 			/*TODO these pointers in the correct place*/
-			unsigned char* a_data = (unsigned char*) malloc(a_size);
-			memcpy( a_data, (void *) inSurface->getClut(), a_palette_size );
-			memcpy( a_data + a_palette_size, buffer, a_image_size );
+			unsigned char* a_data; 
+
+			if(fmt==pfIDX8){
+				a_data = (unsigned char*) malloc(a_size);
+				memcpy( a_data, (void *) inSurface->getClut(), a_palette_size );
+				memcpy( a_data + a_palette_size, buffer, a_image_size );
+			}else{
+				a_data = (unsigned char*) malloc(a_size);
+			
+				//IDX4 Quick fix
+				//TODO, fix IDX4
+			    memcpy( a_data, (void *) inSurface->getClut(), a_palette_size );
+			    for (int y = 0; y < (h*2); y++) {	
+			//ELOG("copiying %d, %d",y,inSurface->GetStride ());
+			    //if(! (y&&1))			
+				    memcpy( a_data + a_palette_size+ (y * inSurface->GetStride ()/4), buffer+ (y * inSurface->GetStride ()/2), inSurface->GetStride ()/2 );
+			    }
+			}
 
 
 		//#ifdef HX_WINDOWS
