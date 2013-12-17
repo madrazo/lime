@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 -main ApplicationMain ::HAXE_FLAGS::
 -cpp ::CPP_DIR::
 -cp ::BUILD_DIR::/cpp/haxe
 --macro allowPackage("flash")
+=======
+-main ApplicationMain ::HAXE_FLAGS::
+-cpp ::CPP_DIR::
+-cp ::BUILD_DIR::/cpp/haxe
+--macro allowPackage("flash")
+>>>>>>> 8e074ccffa5957d0db223fb47adf40965717c8c7
 -debug
