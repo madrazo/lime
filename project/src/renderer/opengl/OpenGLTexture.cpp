@@ -67,6 +67,224 @@ namespace lime {
 		
 	}
 	
+#if HX_WINDOWS
+	#define GL_PALETTE8_RGBA8_OES 0x1000
+	#define GL_PALETTE4_RGBA8_OES 0x1001
+	
+	static GLenum uncompress_image(int l, int tl, GLenum internalformat,
+                               GLsizei width, GLsizei height,
+                               GLsizei imageSize, const GLvoid *data, 
+                               GLenum *newformat, GLvoid **newdata_)
+	{
+		GLubyte *newdata;
+		const GLubyte *palette;
+		const GLubyte *imagedata;
+		int is_alpha;
+		int i;
+		int total;
+		int skip;
+
+		total = 0;
+		for (i = 0; i <= tl; i++)
+			{
+				total += (width >> i) * (height >> i);
+			}
+
+		skip = 0;
+		for (i = 0; i < l; i++)
+		{
+			skip += width * height;
+			width /= 2;
+			height /= 2;
+		}
+
+		/* TODO: different levels should be tested! */
+	#if 0
+		printf("level %d/%d total %d skip %d\n", l, tl, total, skip);
+	#endif
+
+		palette = (const GLubyte *) data;
+
+		switch (internalformat)
+		{
+		default:
+			return GL_INVALID_ENUM;
+		/*case GL_PALETTE4_RGB8_OES:
+			if (imageSize != 16*3 + total / 2)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 16 * 3 + skip / 2;
+			is_alpha = 0;
+			break;
+	
+		case GL_PALETTE4_R5_G6_B5_OES:
+			if (imageSize != 16*2 + total / 2)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 16 * 2 + skip / 2;
+			is_alpha = 0;
+			break;
+		
+		case GL_PALETTE8_RGB8_OES:
+			if (imageSize != 256*3 + total)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 256 * 3 + skip;
+			is_alpha = 0;
+			break;
+	
+		case GL_PALETTE8_R5_G6_B5_OES:
+			if (imageSize != 256*2 + total)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 256 * 2 + skip;
+			is_alpha = 0;
+			break;
+			*/
+		case GL_PALETTE4_RGBA8_OES:
+			if (imageSize != 16*4 + total / 2)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 16 * 4 + skip / 2;
+			is_alpha = 1;
+			break;
+			/*
+		case GL_PALETTE4_RGBA4_OES:
+			if (imageSize != 16*2 + total / 2)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 16 * 2 + skip / 2;
+			is_alpha = 1;
+			break;
+		
+		case GL_PALETTE4_RGB5_A1_OES:
+			if (imageSize != 16*2 + total / 2)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 16 * 2 + skip / 2;
+			is_alpha = 1;
+			break;
+			*/
+		case GL_PALETTE8_RGBA8_OES:
+			if (imageSize != 256*4 + total)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 256 * 4 + skip;
+			is_alpha = 1;
+			break;
+			/*
+		case GL_PALETTE8_RGBA4_OES:
+			if (imageSize != 256*2 + total)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 256 * 2 + skip;
+			is_alpha = 1;
+			break;
+		case GL_PALETTE8_RGB5_A1_OES:
+			if (imageSize != 256*2 + total)
+				return GL_INVALID_VALUE;
+			imagedata = palette + 256 * 2 + skip;
+			is_alpha = 1;
+			break;*/
+		}
+
+
+		newdata = (GLubyte*)malloc(width * height * (3 + is_alpha));
+		if (newdata == NULL)
+			return GL_OUT_OF_MEMORY;
+
+		for (i = 0; (int) i < width * height; i++)
+		{
+			int r, g, b, a = 0;
+			int index;
+
+			switch (internalformat)
+			{
+			default:
+				free(newdata);
+				return GL_INVALID_ENUM;
+			//case GL_PALETTE4_RGB8_OES:
+			case GL_PALETTE4_RGBA8_OES:
+			//case GL_PALETTE4_R5_G6_B5_OES:
+			//case GL_PALETTE4_RGBA4_OES:
+			//case GL_PALETTE4_RGB5_A1_OES:
+				if (i & 1)
+					index = imagedata[i / 2] & 15;
+				else
+					index = imagedata[i / 2] >> 4;
+				break;
+			//case GL_PALETTE8_RGB8_OES:
+			case GL_PALETTE8_RGBA8_OES:
+			//case GL_PALETTE8_R5_G6_B5_OES:
+			//case GL_PALETTE8_RGBA4_OES:
+			//case GL_PALETTE8_RGB5_A1_OES:
+				index = imagedata[i];
+				break;
+			}
+
+			switch (internalformat)
+			{
+			default:
+				free(newdata);
+				return GL_INVALID_ENUM;
+			/*case GL_PALETTE4_RGB8_OES:
+			case GL_PALETTE8_RGB8_OES:
+				r = palette[index*3];
+				g = palette[index*3+1];
+				b = palette[index*3+2];
+				break;*/
+			case GL_PALETTE4_RGBA8_OES:
+			case GL_PALETTE8_RGBA8_OES:
+				r = palette[index*4];
+				g = palette[index*4+1];
+				b = palette[index*4+2];
+				a = palette[index*4+3];
+				break;
+			/*case GL_PALETTE4_R5_G6_B5_OES:
+			case GL_PALETTE8_R5_G6_B5_OES:
+				r = palette[index*2+1] >> 3;
+				r = (r << 3) | (r >> 2);
+				g = ((palette[index*2+1] & 7) << 3) | (palette[index*2] >> 5);
+				g = (g << 2) | (g >> 4);
+				b = palette[index*2] & 0x1F;
+				b = (b << 3) | (b >> 2);
+				break;*/
+			/*case GL_PALETTE4_RGBA4_OES:
+			case GL_PALETTE8_RGBA4_OES:
+				r = palette[index*2+1] >> 4;
+				r |= (r << 4) | r;
+				g = palette[index*2+1] & 0xF;
+				g |= (g << 4) | g;
+				b = palette[index*2] >> 4;
+				b |= (b << 4) | b;
+				a = palette[index*2] & 0xF;
+				a |= (a << 4) | a;
+				break;*/
+			/*case GL_PALETTE4_RGB5_A1_OES:
+			case GL_PALETTE8_RGB5_A1_OES:
+				r = palette[index*2+1] >> 3;
+				r = (r << 3) | (r >> 2);
+				g = ((palette[index*2+1] & 7) << 2) | (palette[index*2] >> 6);
+				g = (g << 3) | (g >> 2);
+				b = (palette[index*2] >> 1) & 0x1F;
+				b = (b << 3) | (b >> 2);
+				a = (palette[index*2] & 1) ? 255 : 0;
+				break;*/
+			}
+
+			if (is_alpha)
+			{
+				newdata[i*4+0] = r;
+				newdata[i*4+1] = g;
+				newdata[i*4+2] = b;
+				newdata[i*4+3] = a;
+			}
+			else
+			{
+				newdata[i*3+0] = r;
+				newdata[i*3+1] = g;
+				newdata[i*3+2] = b;
+			}
+		}
+
+		*newformat = is_alpha ? GL_RGBA : GL_RGB;
+		*newdata_ = newdata;
+
+		return GL_NO_ERROR;
+	}
+
+#endif	
 	
 	OpenGLTexture::OpenGLTexture (Surface *inSurface, unsigned int inFlags) {
 		
@@ -95,6 +313,7 @@ namespace lime {
 		GLuint store_format = (fmt == pfAlpha ? GL_ALPHA : GL_RGBA);
 		int pixels = GL_UNSIGNED_BYTE;
 		int gpuFormat = inSurface->GPUFormat ();
+		bool compressed = fmt==pfIDX8 || fmt==pfIDX4 ? true: false;
 		
 		//if (inSurface) {
 			//inSurface->multiplyAlpha();
@@ -176,8 +395,59 @@ namespace lime {
 		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mRepeat ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mRepeat ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 		
-		glTexImage2D (GL_TEXTURE_2D, 0, store_format, w, h, 0, store_format, pixels, buffer);
+		if(compressed){
+			int a_palette_size = (fmt==pfIDX8? 256:16)*4;
+			int a_image_size = (fmt==pfIDX8? (w*h):(w*h+1)/2);
+			int a_size = a_palette_size+a_image_size;
+
+			/*TODO these pointers in the correct place*/
+			unsigned char* a_data = (unsigned char*) malloc(a_size);
+			memcpy( a_data, (void *) inSurface->getClut(), a_palette_size );
+			memcpy( a_data + a_palette_size, buffer, a_image_size );
+
+
+		#ifdef HX_WINDOWS
 		
+/*		
+
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			//glBind..
+			glEnable(GL_COLOR_TABLE);
+			glColorTableEXT(GL_TEXTURE_2D, GL_RGBA8, a_palette_size, GL_RGBA, GL_UNSIGNED_BYTE, inSurface->getClut());
+			//GLenum err = glGetError();
+			//fprintf(stderr, "%s:%d glGetError() = 0x%04x", __FILE__, __LINE__, err);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, w, h, 0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, inSurface->Row(0));
+			//GLenum err2= glGetError();
+			
+*/
+			GLenum newformat;
+			GLvoid *newdata;
+			GLenum err;
+
+			err = uncompress_image(0/*-i*/, 0/*-level*/, (fmt==pfIDX8? GL_PALETTE8_RGBA8_OES:GL_PALETTE4_RGBA8_OES), w, h,
+		                       a_size, a_data,
+		                       &newformat, &newdata);
+			if (err != GL_NO_ERROR)		   
+			  return;
+			glTexImage2D (GL_TEXTURE_2D, 0, newformat, w, h, 0, newformat, GL_UNSIGNED_BYTE, newdata);
+			free(newdata);
+
+		#else
+		
+			glCompressedTexImage2D( GL_TEXTURE_2D,
+			                            0,
+			                            (fmt==pfIDX8 ? GL_PALETTE8_RGBA8_OES : GL_PALETTE4_RGBA8_OES),
+			                            w,
+			                            h,
+			                            0,
+			                            a_size,
+			                            a_data
+			                            );
+		#endif
+			free(a_data);
+		}else{
+			glTexImage2D (GL_TEXTURE_2D, 0, store_format, w, h, 0, store_format, pixels, buffer);
+		}
 		if (buffer && buffer != inSurface->Row (0))
 			free (buffer);
 		

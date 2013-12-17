@@ -70,6 +70,11 @@ namespace lime {
 			Texture *GetTexture () { return mTexture; }
 			Surface *IncRef () { mRefCount++; return this; }
 			const uint8 *Row (int inY) const { return GetBase () + GetStride () * inY; }
+
+			virtual void * getClut(){ return 0; };
+			virtual int getClutSize(){ return 0; };
+			virtual void setClut(int inClutSize, int *inClutPtr){};
+
 			int Version () const { return mVersion; }
 		
 		protected:

@@ -17,6 +17,12 @@ namespace lime {
 		if (inGPUFormat == -1) {
 			
 			int pix_size = inPixelFormat == pfAlpha ? 1 : 4;
+
+            mClutPtr = 0;
+           	if(inPixelFormat==pfIDX4 || inPixelFormat==pfIDX8){
+          		pix_size = 1; 
+       		}  
+
 			if (inByteAlign > 1) {
 				
 				mStride = inWidth * pix_size + inByteAlign - 1;
@@ -25,6 +31,10 @@ namespace lime {
 			} else {
 				
 				mStride = inWidth * pix_size;
+
+				if(inPixelFormat==pfIDX4){ 
+				    mStride = (mStride+1)/2;   
+				}
 				
 			}
 			
@@ -44,6 +54,24 @@ namespace lime {
 		
 	}
 	
+
+	void SimpleSurface::setClut(int inClutSize, int *inClutPtr){
+
+   		if( !(mGPUPixelFormat == pfIDX4 || mGPUPixelFormat == pfIDX8) ){
+      		printf("Setting CLUT palette to non-index image\n");
+      		return;
+   		}
+
+   		if(mGPUPixelFormat == pfIDX4){
+      		mClutSize = 16;
+   		}else{
+      		mClutSize = 256;
+   		}
+
+   		mClutPtr = (int *)malloc(mClutSize * 4);
+   		memcpy(mClutPtr, inClutPtr, inClutSize*4);
+  		mClutPtr[inClutSize-1] = 0x00000000;                   
+	}
 	
 	SimpleSurface::~SimpleSurface () {
 		
@@ -205,7 +233,7 @@ namespace lime {
 			// Check for overlap....
 			if (src_alpha == dest_alpha) {
 				
-				int size_shift = (src_alpha ? 0 : 2);
+				int size_shift = (!src_alpha ? 2 : 0);   //fix for IDX8
 				int d_base = (outDest.mSoftPtr - mBase);
 				int y_off = d_base / mStride;
 				int x_off = (d_base - y_off * mStride) >> size_shift;
@@ -224,6 +252,21 @@ namespace lime {
 				}
 				
 			}
+
+			if(mPixelFormat == pfIDX8){
+				//printf("Warning. beta implemented for IDX8 SimpleSurface::BlitTo %d,%d %s, pfAlpha? %s\n",inPosX,inPosY,inBlend?"blend_true":"blend_false",outDest.mPixelFormat==pfAlpha?"true":"false");
+				ImageDest<uint8> dest(outDest);
+				ImageSource<uint8> src(mBase,mStride,mPixelFormat);
+				TBlitBlendIDX8( dest, src, NullMask(), dx, dy, src_rect, inBlend );   
+				return;
+			} else if(mPixelFormat == pfIDX4){
+				//printf("Warning. beta implemented for IDX4 SimpleSurface::BlitTo %d,%d %s, pfAlpha? %s\n",inPosX,inPosY,inBlend?"blend_true":"blend_false",outDest.mPixelFormat==pfAlpha?"true":"false");
+				ImageDest<uint8> dest(outDest);
+				ImageSource<uint8> src(mBase,mStride,mPixelFormat);
+				TBlitBlendIDX4( dest, src, NullMask(), dx, dy, src_rect, inBlend );
+				return;
+			}
+
 			
 			// Blitting to alpha image - can ignore blend mode
 			if (dest_alpha) {
@@ -538,6 +581,20 @@ namespace lime {
 		
 		if (inX < 0 || inY < 0 || inX >= mWidth || inY >= mHeight || !mBase)
 			return 0;
+			
+
+		if(mClutSize == 256){ //pfIDX8
+		    int * c = (int *)mClutPtr;
+		    return c[mBase[inY*mStride + inX]<<24];
+		}
+		else if(mClutSize == 16){ //pfIDX4
+		    if(inX%2==0) {
+		        return mBase[inY*mStride + inX/2] & 0x0000000F;
+		    }
+		    else {
+		   	   return (mBase[inY*mStride + inX/2] >> 4) & 0x0000000F;
+		    }
+		}
 		
 		if (mPixelFormat == pfAlpha)
 			return mBase[inY*mStride + inX] << 24;
@@ -805,8 +862,17 @@ namespace lime {
 		mVersion++;
 		if (mTexture)
 			mTexture->Dirty (Rect (inX, inY, 1, 1));
-		
-		if (inAlphaToo) {
+			
+	    if (mClutSize==16){ //pfIDX4    
+	        if(inX%2==0) 
+	        	mBase[inY*mStride + inX/2] = (mBase[inY*mStride + inX/2] & 0xF0)|(inRGBA & 0x0F);
+	        else 
+	        	mBase[inY*mStride + inX/2] = (mBase[inY*mStride + inX/2] & 0x0F)|((inRGBA & 0x0F) << 4);
+	    }
+	    else if (mClutSize==256){ //pfIDX8
+	        mBase[inY*mStride + inX] = (inRGBA & 0xFF);
+	    }
+		else if (inAlphaToo) {
 			
 			if(mPixelFormat == pfXRGB)
 				mPixelFormat = pfARGB;

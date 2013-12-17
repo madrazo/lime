@@ -22,6 +22,10 @@ enum PixelFormat
    pfHardware     = 0x10,
    pfARGB4444     = 0x11,
    pfRGB565       = 0x12,
+
+   //palettized formats
+   pfIDX4         = 0x21,  
+   pfIDX8         = 0x22,
    
    pfHasAlpha     = 0x01,
    pfSwapRB       = 0x02,

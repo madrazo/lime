@@ -14,6 +14,10 @@ namespace lime {
 			
 			SimpleSurface (int inWidth, int inHeight, PixelFormat inPixelFormat, int inByteAlign = 4, int inGPUPixelFormat = -1);
 			
+			void setClut(int inClutSize, int *inClutPtr);
+			void * getClut(){ return (void*) mClutPtr;};
+			int getClutSize(){ return mClutSize;};
+
 			virtual void BlitChannel (const RenderTarget &outTarget, const Rect &inSrcRect, int inPosX, int inPosY, int inSrcChannel, int inDestChannel) const;
 			virtual void BlitTo (const RenderTarget &outTarget, const Rect &inSrcRect,int inPosX, int inPosY, BlendMode inBlend, const BitmapCache *inMask, uint32 inTint = 0xffffff) const;
 			virtual void colorTransform (const Rect &inRect, ColorTransform &inTransform);
@@ -61,6 +65,9 @@ namespace lime {
 			PixelFormat	mPixelFormat;
 			int mStride;
 			int mWidth;
+
+			int *mClutPtr; 
+			int mClutSize;
 		
 		private:
 			

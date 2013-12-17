@@ -520,7 +520,45 @@ namespace lime {
 				blend(outDest.Next(),inMask.Mask(inSrc.Next()));
 		}
 	}
+	
+	template<typename MASK,typename SOURCE>
+	void TBlitBlendIDX8( const ImageDest<uint8> &outDest, SOURCE &inSrc,const MASK &inMask,
+            int inX, int inY, const Rect &inSrcRect, BlendMode inMode)
+	{
+		bool swap = inSrc.ShouldSwap(outDest.Format());
+		bool dest_alpha = outDest.Format() & pfHasAlpha;
 
+
+		for(int y=0;y<inSrcRect.h;y++)
+		{
+		  	outDest.SetPos(inX , inY + y );
+		  	inMask.SetPos(inX , inY + y );
+		  	inSrc.SetPos( inSrcRect.x, inSrcRect.y + y );
+			memcpy((void*)&outDest.Next() , (void*)&inSrc.Next(),  inSrcRect.w);
+   		}
+
+	}
+
+	template<typename MASK,typename SOURCE>
+	void TBlitBlendIDX4( const ImageDest<uint8> &outDest, SOURCE &inSrc,const MASK &inMask,
+            int inX, int inY, const Rect &inSrcRect, BlendMode inMode)
+	{
+   		bool swap = inSrc.ShouldSwap(outDest.Format());
+   		bool dest_alpha = outDest.Format() & pfHasAlpha;
+
+   		for(int y=0;y<inSrcRect.h;y++)
+   		{
+      		outDest.SetPos(inX , inY + y );
+      		inMask.SetPos(inX , inY + y );
+      		inSrc.SetPos( inSrcRect.x, inSrcRect.y + y );
+      		int pw = (inSrcRect.w+1)/2;
+      
+      		for(int x=0;x<pw;x++){
+         		outDest.Next() = inSrc.Next() ;
+      		}
+   		}
+
+	}
 
 }
 

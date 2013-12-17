@@ -402,6 +402,47 @@ static Surface *TryPNG(FILE *inFile,const uint8 *inData, int inDataLen)
    png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
        &interlace_type, NULL, NULL);
 
+   
+   if( color_type == PNG_COLOR_TYPE_PALETTE){
+      //Open as palette
+      png_colorp    palette;
+      int num_palette;
+      //printf("GRR ReadPNG:  PNG_COLOR_TYPE_PALETTE\n");
+      if (!png_get_PLTE(png_ptr, info_ptr, &palette, &num_palette)) {
+         printf("ERROR_PLTE_CHUNK_NOT_FOUND_IN_PALETTE_IMAGE\n");
+         png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+         return (0);
+      }
+ 
+      int * ipalette;
+      ipalette = (int *) malloc(sizeof(int)*num_palette);
+
+      result = new SimpleSurface(width,height, bit_depth <= 4 ? pfIDX4 : pfIDX8 );
+      result->IncRef();
+      for (short i = 0;  i < num_palette;  ++i){
+                           ipalette[i] = 
+                           (int)((0xFF << 24) | 
+                              ((palette[i].blue & 0xFF) << 16) | 
+                              ((palette[i].green & 0xFF) << 8) | 
+                              ((palette[i].red & 0xFF) ));                      
+      }
+      result->setClut(num_palette, ipalette);
+      target = result->BeginRender(Rect(width,height));
+      for (int i = 0; i < height; i++)
+      {
+         png_bytep anAddr = (png_bytep) target.Row(i);
+         png_read_rows(png_ptr, (png_bytepp) &anAddr, NULL, 1);
+      }
+      result->EndRender();
+
+      /* read rest of file, and get additional chunks in info_ptr - REQUIRED */
+      png_read_end(png_ptr, info_ptr);
+      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+
+      return result;
+         
+	}else{
+
    bool has_alpha = color_type== PNG_COLOR_TYPE_GRAY_ALPHA ||
                     color_type==PNG_COLOR_TYPE_RGB_ALPHA;
    /* Add filler (or alpha) byte (before/after each RGB triplet) */
@@ -444,6 +485,8 @@ static Surface *TryPNG(FILE *inFile,const uint8 *inData, int inDataLen)
 
    /* that's it */
    return result;
+
+   }
 }
 
 static bool EncodePNG(Surface *inSurface, ByteArray *outBytes)
